@@ -1,0 +1,25 @@
+[package]
+name = "vez-overlay"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+vez-core.workspace = true
+vez-rpmdb.workspace = true
+anyhow.workspace = true
+tracing.workspace = true
+serde.workspace = true
+# For /etc/svara/packages.toml, the declarative package set `vez apply` reads. Declared here
+# rather than in vez-cli because that crate is a CLI and this is a file format.
+#
+# The dependency is deliberate, not incidental: the alternative is a hand-rolled parser for a
+# format we invented, and the lessons this repository already carries about hand-rolled
+# parsers (the `.repo` INI reader, the rpmvercmp port) are that they earn their place only
+# when the format is not ours. This one is ours, it is user-edited, and a wrong answer from
+# it installs the wrong packages as root — so it gets a real parser and real diagnostics.
+toml.workspace = true
+# For the layer state (`state.rs`) and the image's own release record, which is JSON. Same
+# reasoning as `toml`: both are machine-written formats we read, and a real parser gives a
+# real error position instead of a `None` that conflates absent, empty and malformed.
+serde_json.workspace = true

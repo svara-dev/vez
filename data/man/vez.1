@@ -1,0 +1,371 @@
+.TH VEZ 1 "2026" "vez" "User Commands"
+.SH NAME
+vez \- Svara's overlay-aware package manager
+.SH SYNOPSIS
+.B vez
+[options]
+.I command
+[arguments]
+.SH DESCRIPTION
+.B vez
+is Svara's package manager. It speaks plain yum/dnf repository metadata
+and resolves and applies transactions itself, without depending on dnf or
+libdnf. On a booted Svara system, package operations are layered on top
+of the read-only base image instead of modifying it directly, and the
+layer is rebuilt at every boot so an installed package survives a reboot.
+.PP
+Vez does
+.B not
+ship a
+.B dnf
+or
+.B dnf5
+shim, so a script that calls dnf by name still calls dnf. Use
+.B vez
+directly.
+.SH GLOBAL OPTIONS
+These options are accepted before or after the command name and apply to
+most subcommands.
+.TP
+.B \-\-config \fIPATH\fR
+Path to vez's main config file (dnf.conf compatible [main] section).
+Default: /etc/vez/vez.conf.
+.TP
+.B \-\-repo\-dir \fIPATH\fR
+Directory of dnf/yum style .repo files. Default: /etc/yum.repos.d.
+.TP
+.B \-\-cache\-dir \fIPATH\fR
+Directory where downloaded .rpm files are cached before install. Default:
+/var/cache/vez.
+.TP
+.B \-y\fR, \fB\-\-assumeyes\fR
+Assume "yes" to any prompt.
+.TP
+.B \-\-assumeno\fR
+Assume "no" to any prompt.
+.TP
+.B \-q\fR, \fB\-\-quiet\fR
+Suppress non essential output.
+.TP
+.B \-x\fR, \fB\-\-exclude \fIPATTERN\fR
+Exclude a package (by name, glob capable) from consideration. Repeatable,
+comma separated.
+.TP
+.B \-C\fR, \fB\-\-cacheonly\fR
+Run entirely from cached repo metadata; error instead of touching the
+network.
+.TP
+.B \-\-refresh\fR
+Force a repo metadata refresh, ignoring metadata_expire.
+.TP
+.B \-\-repo\fR, \fB\-\-repoid \fIID\fR
+Restrict operations to only these repo ids (glob capable, repeatable,
+comma separated).
+.TP
+.B \-\-enablerepo\fR, \fB\-\-enable\-repo \fIID\fR
+Enable a repo for this run only, even if disabled (glob capable,
+repeatable).
+.TP
+.B \-\-disablerepo\fR, \fB\-\-disable\-repo \fIID\fR
+Disable a repo for this run only, even if enabled (glob capable,
+repeatable).
+.TP
+.B \-\-no\-gpgchecks\fR, \fB\-\-nogpgcheck\fR
+Skip GPG signature verification entirely for this run.
+.TP
+.B \-\-setopt \fIKEY=VALUE\fR
+dnf style config override, repeatable. vez only acts on
+tsflags=noscripts (skip rpm scriptlets); other keys are accepted and
+ignored.
+.TP
+.B \-\-allowerasing\fR
+Allow removing conflicting or obsoleted packages to complete a
+transaction, instead of refusing.
+.TP
+.B \-\-best\fR
+Require the newest available version to resolve cleanly, rather than
+silently falling back to an older one.
+.TP
+.B \-\-skip\-unavailable\fR
+Drop package names that don't match anything in the enabled repos
+instead of failing the whole transaction. Only affects install.
+.TP
+.B \-\-repofrompath \fINAME,BASEURL\fR
+Add an ad hoc repo from a name,baseurl pair, for this run only.
+Repeatable.
+.TP
+.B \-\-no\-autoremove\fR, \fB\-\-noautoremove\fR
+Don't remove now unneeded dependency only packages after a remove.
+.TP
+.B \-\-installroot \fIPATH\fR
+Operate against an alternate root instead of the real /, same as
+dnf/rpm's own \-\-installroot.
+.TP
+.B \-\-no\-recommends\fR
+Don't pull in weak dependencies (Recommends) for this run.
+.TP
+.B \-\-skip\-broken\fR
+If the full requested install set can't be resolved together, drop
+whichever names are responsible and proceed with the rest.
+.TP
+.B \-\-multilib\-all\fR
+Install every distinct architecture build of a matched package side by
+side, instead of just one.
+.TP
+.B \-\-forcearch \fIARCH\fR
+Resolve and download for a different architecture than the host's.
+.TP
+.B \-\-from\-repo \fIID\fR
+Restrict candidate resolution to packages from a specific repo id (glob
+capable, repeatable). Unlike \-\-repo, every enabled repo's metadata is
+still loaded for dependency checks.
+.TP
+.B \-\-from\-vendor \fIVENDOR\fR
+Restrict candidate resolution to packages whose Vendor tag matches (glob
+capable, repeatable).
+.TP
+.B \-\-downloadonly\fR
+Resolve and download the transaction, but don't apply it. Applies to
+install, upgrade, downgrade, reinstall, distro\-sync, autoremove and
+swap.
+.TP
+.B \-\-destdir \fIPATH\fR
+With \-\-downloadonly, where to write the downloaded .rpms. Defaults to
+\-\-cache\-dir.
+.TP
+.B \-\-allow\-downgrade\fR
+Allow resolving to an older version than what's currently installed.
+This is the default; the flag exists for parity and explicitness.
+.TP
+.B \-\-no\-allow\-downgrade\fR
+Forbid the resolver from downgrading anything to satisfy this request.
+.SH COMMANDS
+.TP
+.B install\fR [\fIpackages...\fR] [\fB\-\-dry\-run\fR]
+Resolve and install one or more packages. Aliases: in, pour. Accepts
+comps style @group\-id and @^environment\-id names in addition to plain
+package names.
+.TP
+.B remove\fR [\fIpackages...\fR] [\fB\-\-dry\-run\fR]
+Remove one or more packages. Aliases: rm, erase.
+.TP
+.B upgrade\fR [\fIpackages...\fR] [\fB\-\-dry\-run\fR] [\fB\-\-advisory \fIID\fR] [\fB\-\-security\fR] [\fB\-\-bugfix\fR] [\fB\-\-enhancement\fR] [\fB\-\-advisory\-severity \fILEVEL\fR]
+Upgrade one or more installed packages to the newest available version.
+Always overlay only: a base image package named explicitly is reported
+instead of being layered into the overlay, since the base image is read
+only. The one exception is \fBvez\fR itself, which is updated in place by
+layering a copy into the overlay; the base image's copy is left untouched
+underneath as the recovery. Aliases: up, update.
+.TP
+.B system\-upgrade\fR [\fIaction\fR] [\fB\-\-dry\-run\fR]
+Mode aware system upgrade: dnf5's system\-upgrade on a plain host,
+Svara's image update flow. On a plain host, a bare
+invocation is an error; use one of the actions below to perform a major
+release upgrade. On an overlay system, a bare invocation runs an
+ordinary overlay package upgrade, then checks for and stages a new base
+image.
+.RS
+.TP
+.B download \fB\-\-releasever \fIVERSION\fR
+Resolve and download the new release's packages without touching the
+running system.
+.TP
+.B reboot
+Stage the downloaded transaction and reboot into applying it.
+.TP
+.B clean
+Discard a staged transaction.
+.TP
+.B log
+Show the log of a past or current system upgrade run.
+.TP
+.B status
+Show the status of a past or current system upgrade run.
+.RE
+.TP
+.B reinstall\fR [\fIpackages...\fR] [\fB\-\-dry\-run\fR]
+Reinstall one or more installed packages at their exact current version.
+Alias: rei.
+.TP
+.B downgrade\fR [\fIpackages...\fR] [\fB\-\-dry\-run\fR]
+Downgrade one or more installed packages to the newest available version
+older than what's installed. Alias: dg.
+.TP
+.B distro\-sync\fR [\fIpackages...\fR] [\fB\-\-dry\-run\fR]
+Make installed packages exactly match the best available repo version,
+upgrading or downgrading as needed. With no names given, every overlay
+installed package is synced. Aliases: dsync, distrosync.
+.TP
+.B autoremove\fR [\fB\-\-dry\-run\fR]
+Remove overlay packages that were pulled in only as a dependency and are
+no longer required by anything still installed.
+.TP
+.B swap \fIremove_spec\fR \fIinstall_spec\fR
+Remove remove_spec and install install_spec as two back to back
+transactions, approximating dnf's single transaction swap.
+.TP
+.B mark \fIaction\fR
+Change a package's recorded install reason, controlling whether
+autoremove may remove it later.
+.TP
+.B check\fR [\fB\-\-dependencies\fR] [\fB\-\-duplicates\fR] [\fB\-\-obsoleted\fR]
+Check the installed package set for problems: unmet dependencies,
+installed package conflicts, obsoleted packages, and duplicate name.arch
+installs. With no flags, all checks run.
+.TP
+.B list\fR [\fIfilter\fR] [\fB\-\-base\fR] [\fB\-\-available\fR] [\fB\-\-extras\fR] [\fB\-\-obsoletes\fR] [\fB\-\-upgrades\fR] [\fB\-\-autoremove\fR] [\fB\-\-showduplicates\fR]
+List installed packages, optionally filtered by a name substring. Lists
+overlay installs by default; \-\-base lists the base image's package set
+instead. Alias: ls.
+.TP
+.B search \fIquery\fR [\fB\-\-showrepo\fR]
+Search enabled repos' package name and summary for a substring. Alias:
+se.
+.TP
+.B provides \fIcapability\fR
+Show what's installed or available that provides a capability (name,
+versioned dependency, or file path). Alias: whatprovides.
+.TP
+.B check\-update\fR [\fIpackages...\fR] [\fB\-\-json\fR]
+List installed packages that have a newer version available, without
+downloading or installing anything. Alias: check\-upgrade.
+.TP
+.B repoquery\fR [\fIpattern\fR] [\fIoptions...\fR]
+Query repo package metadata: name/glob matching, \-\-installed,
+\-\-available, \-\-whatprovides, \-\-whatrequires, \-\-whatconflicts,
+\-\-whatobsoletes, \-\-whatrecommends, \-\-whatenhances, \-\-whatsuggests,
+\-\-whatsupplements, \-\-recursive, \-\-arch, \-\-duplicates, \-\-info,
+\-\-queryformat/\-\-qf, \-\-requires, \-\-provides, \-\-conflicts, \-\-obsoletes,
+\-\-recommends, \-\-enhances, \-\-suggests, \-\-supplements, \-\-srpm/\-\-source,
+\-\-location, \-\-nvr, \-\-envra, \-\-extras, \-\-upgrades, \-\-querytags. Alias:
+rq.
+.TP
+.B info \fIpackage\fR
+Show detailed info (NEVRA, repo, summary) for a package name. Aliases:
+if, more.
+.TP
+.B leaves
+List overlay installed packages that nothing else installed depends on.
+.TP
+.B origin \fIpackage\fR
+Show whether a package is installed, and if so from the base image or
+the overlay.
+.TP
+.B paths
+Print the overlay paths vez is using.
+.TP
+.B makecache
+Unconditionally refresh cached repo metadata for every enabled repo.
+Aliases: mc, makecache.
+.TP
+.B copr \fIaction\fR
+Enable or disable a Copr repo.
+.TP
+.B clean\fR [\fIwhat\fR]
+Clear cached data under \-\-cache\-dir. Default: all.
+.TP
+.B download\fR [\fIpackages...\fR] [\fB\-\-destdir \fIPATH\fR] [\fB\-\-srpm\fR] [\fB\-\-releasever \fIVERSION\fR]
+Resolve and download packages (and their dependencies) without
+installing them.
+.TP
+.B debuginfo\-install\fR [\fIpackages...\fR] [\fB\-\-dry\-run\fR]
+Install <name>\-debuginfo for one or more already named packages. Needs
+the debuginfo packages to be present in a configured repo.
+.TP
+.B changelog\fR [\fIpackages...\fR]
+Print the RPM changelog for one or more installed packages.
+.TP
+.B needs\-restarting
+Scan running processes for ones using a shared library or binary that
+was since deleted or replaced on disk, and report the affected PIDs.
+.TP
+.B repo \fIaction\fR
+List or show details for configured repos.
+.TP
+.B history\fR [\fIaction\fR]
+View recorded install and remove transactions. A bare invocation
+defaults to list.
+.TP
+.B versionlock \fIaction\fR
+Exclude packages from upgrade and distro\-sync candidate selection.
+.TP
+.B config\-manager\fR [\fB\-\-set\-enabled \fIID\fR] [\fB\-\-set\-disabled \fIID\fR] [\fB\-\-add\-repo \fIID=BASEURL\fR] [\fIaction\fR]
+Minimal .repo file editing: enable or disable existing repos, or add a
+new one from a bare baseurl.
+.TP
+.B repoinfo \fIid\fR
+Alias for "repo info".
+.TP
+.B repolist\fR [\fB\-\-all\fR]
+Alias for "repo list".
+.TP
+.B group \fIaction\fR
+Comps group management: @id install syntax, group list, info, install
+and remove.
+.TP
+.B environment \fIaction\fR
+Comps environment management: @^id install syntax, environment list,
+info, install and remove.
+.TP
+.B advisory \fIaction\fR
+Security, bugfix and enhancement advisories (updateinfo). Not every
+repo, especially third party ones, publishes this data. Alias:
+updateinfo.
+.TP
+.B reposync\fR [\fB\-p\fR, \fB\-\-download\-path \fIPATH\fR] [\fB\-\-newest\-only\fR] [\fB\-\-norepopath\fR]
+Mirror a repo's packages to local disk. Respects the global \-\-repo
+filter for which repo(s) to sync.
+.TP
+.B repomanage \fIpath\fR [\fB\-\-new\fR] [\fB\-\-keep \fIN\fR]
+Prune old package versions from a local directory of .rpm files, grouped
+by name and arch.
+.TP
+.B repoclosure\fR [\fB\-\-pkg \fIPATTERN\fR]
+Report packages whose dependencies aren't satisfiable by anything in the
+enabled repos.
+.TP
+.B builddep \fIspec\fR [\fB\-\-define \fINAME VALUE\fR] [\fB\-\-dry\-run\fR]
+Install build dependencies from a .spec or .src.rpm file. Alias:
+build\-dep.
+.TP
+.B automatic\fR [\fB\-\-timer\fR] [\fB\-\-downloadupdates\fR] [\fB\-\-no\-downloadupdates\fR] [\fB\-\-installupdates\fR] [\fB\-\-no\-installupdates\fR]
+Non interactive upgrade suitable for a periodic timer or cron job,
+driven by automatic.conf. Resolves an upgrade, optionally downloads it,
+optionally applies it.
+.TP
+.B completions \fIshell\fR
+Generate a shell completion script for vez.
+.SH FILES
+.TP
+.I /etc/vez/vez.conf
+vez's main config file, dnf.conf compatible.
+.TP
+.I /etc/yum.repos.d/
+Directory of .repo files.
+.TP
+.I /var/cache/vez
+Downloaded package cache. Kept between runs so a replay can reinstall
+without network access.
+.TP
+.I /var/lib/svara/vez/rpmdb
+Vez's own rpm database, holding every package vez installed. Separate
+from the base image's own database at
+.IR /usr/share/rpm ,
+which is read-only and belongs to the image. The two are unioned at query
+time and never merged.
+.TP
+.I /var/lib/svara/vez/overlay/upper
+The overlay upper directory. This is where an installed package's files
+land, and because it is under
+.I /var
+they survive a reboot: the overlay itself is rebuilt from here on every
+boot.
+.TP
+.I /var/lib/svara/vez/packages.list
+The names vez installed, one per line. A replay reads this to restore the
+layer.
+.SH SEE ALSO
+.BR vez.conf (5),
+.BR dnf.conf (5)
+.SH AUTHOR
+Svara project.

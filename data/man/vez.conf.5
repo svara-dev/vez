@@ -1,0 +1,134 @@
+.TH VEZ.CONF 5 "2026" "vez" "File Formats"
+.SH NAME
+vez.conf \- configuration file for vez
+.SH SYNOPSIS
+.I /etc/vez/vez.conf
+.SH DESCRIPTION
+vez reads its main configuration from a dnf.conf compatible file, under
+a single
+.B [main]
+section. Only the options listed below are recognized; any other dnf.conf
+option is accepted and ignored. Command line flags always take
+precedence over a value set here, which in turn takes precedence over
+vez's own built in default.
+.PP
+See
+.BR dnf.conf (5)
+for background on the file format and on options this file shares with
+dnf.
+.SH OPTIONS
+.TP
+.B cachedir\fR=\fIPATH\fR
+Directory where downloaded .rpm files are cached before install.
+Default: /var/cache/vez.
+.TP
+.B reposdir\fR=\fIPATH\fR
+Directory of dnf/yum style .repo files. Default: /etc/yum.repos.d.
+.TP
+.B keepcache\fR=\fI0|1\fR
+Whether to keep downloaded packages in the cache after a successful
+install. Default: 0.
+.TP
+.B assumeyes\fR=\fI0|1\fR
+Assume "yes" to any prompt. Default: 0.
+.TP
+.B assumeno\fR=\fI0|1\fR
+Assume "no" to any prompt. Default: 0.
+.TP
+.B gpgcheck\fR=\fI0|1\fR
+Verify package GPG signatures. Default: 1.
+.TP
+.B best\fR=\fI0|1\fR
+Require the newest available version to resolve cleanly, rather than
+silently falling back to an older one. Default: 1.
+.TP
+.B exclude\fR=\fIPATTERN[,PATTERN...]\fR
+Exclude matching packages (glob capable) from consideration in every
+run, unless overridden on the command line or turned off with
+disable_excludes.
+.TP
+.B includepkgs\fR=\fIPATTERN[,PATTERN...]\fR
+Restrict consideration to only matching packages.
+.TP
+.B disable_excludes\fR=\fImain|*\fR
+Disable the exclude= filtering above for this system.
+.TP
+.B metadata_expire\fR=\fISECONDS\fR
+How long cached repo metadata stays valid before vez refreshes it.
+Default: 172800 (two days).
+.TP
+.B retries\fR=\fIN\fR
+Number of times to retry a failed download or metadata fetch. Default:
+10.
+.TP
+.B timeout\fR=\fISECONDS\fR
+Stall timeout: abort a download if no data arrives for this long.
+Default: 30.
+.TP
+.B max_parallel_downloads\fR=\fIN\fR
+Maximum number of packages to download at once. Default: 3.
+.TP
+.B skip_if_unavailable\fR=\fI0|1\fR
+Continue past a repo whose metadata can't be fetched instead of
+failing. Default: 0.
+.TP
+.B clean_requirements_on_remove\fR=\fI0|1\fR
+Whether removing a package also removes its now unneeded
+dependency only packages. Default: 1.
+.TP
+.B installroot\fR=\fIPATH\fR
+Operate against an alternate root instead of the real /. Default: /.
+.TP
+.B installonlypkgs\fR=\fIPATTERN[,PATTERN...]\fR
+Packages (like the kernel) that install side by side across versions
+instead of replacing the previous build.
+.TP
+.B protected_packages\fR=\fINAME[,NAME...]\fR
+Packages that vez refuses to remove, in addition to its own always
+protected names.
+.TP
+.B install_weak_deps\fR=\fI0|1\fR
+Whether to pull in weak dependencies (Recommends) when resolving a
+transaction.
+.TP
+.B multilib_policy\fR=\fIbest|all\fR
+Whether to install only the best matching architecture build of a
+package, or every distinct architecture build side by side.
+.TP
+.B obsoletes\fR=\fI0|1\fR
+Whether package obsoletes are honored during resolution.
+.TP
+.B skip_broken\fR=\fI0|1\fR
+If the full requested install set can't be resolved together, drop
+whichever names are responsible and proceed with the rest.
+.TP
+.B sslverify\fR=\fI0|1\fR
+Verify TLS certificates when talking to repos. Default: 1. Setting this
+to 0 is an escape hatch for a repo behind a broken or self signed
+certificate chain and should not be used otherwise.
+.TP
+.B proxy\fR=\fIURL\fR
+Proxy URL used for all repo requests.
+.TP
+.B proxy_username\fR=\fIUSER\fR
+.TQ
+.B proxy_password\fR=\fIPASSWORD\fR
+Credentials for the configured proxy.
+.TP
+.B username\fR=\fIUSER\fR
+.TQ
+.B password\fR=\fIPASSWORD\fR
+Default basic auth credentials sent with every repo request.
+.TP
+.B ip_resolve\fR=\fI4|6|ipv4|ipv6\fR
+Restrict repo requests to one IP address family.
+.TP
+.B user_agent\fR=\fISTRING\fR
+Override the User\-Agent header sent with repo requests.
+.SH FILES
+.I /etc/vez/vez.conf
+.SH SEE ALSO
+.BR vez (1),
+.BR dnf.conf (5)
+.SH AUTHOR
+Svara project.

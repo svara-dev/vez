@@ -1,0 +1,13 @@
+[package]
+name = "vez-resolver"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+vez-core.workspace = true
+vez-overlay.workspace = true
+vez-rpmdb.workspace = true
+vez-solv.workspace = true
+anyhow.workspace = true
+tracing.workspace = true

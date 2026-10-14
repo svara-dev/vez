@@ -1,0 +1,71 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/vez-core",
+    "crates/vez-rpmdb",
+    "crates/vez-overlay",
+    "crates/vez-repo",
+    "crates/vez-resolver",
+    "crates/vez-solv",
+    "crates/vez-librepo",
+    "crates/vez-transaction",
+    "crates/vez-cli",
+]
+
+[workspace.package]
+version = "0.1.2"
+edition = "2021"
+license = "GPL-3.0-or-later"
+# Where the fork is published. Vez is Svara's package manager and is pushed to its own
+# repository; the upstream this forks is recorded in README.md and the root NOTICE.
+repository = "https://github.com/svara-dev/vez"
+
+[workspace.dependencies]
+vez-core = { path = "crates/vez-core" }
+vez-rpmdb = { path = "crates/vez-rpmdb" }
+vez-overlay = { path = "crates/vez-overlay" }
+vez-repo = { path = "crates/vez-repo" }
+vez-resolver = { path = "crates/vez-resolver" }
+vez-solv = { path = "crates/vez-solv" }
+vez-librepo = { path = "crates/vez-librepo" }
+vez-transaction = { path = "crates/vez-transaction" }
+
+anyhow = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# /etc/svara/packages.toml — the declarative package set. See the comment on the dependency in
+# crates/vez-overlay/Cargo.toml for why this is a real parser and not a hand-rolled one.
+toml = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "process", "fs", "io-util", "sync"] }
+# hickory-dns: the default resolver shells out to the OS's blocking
+# getaddrinfo() on a threadpool, and nothing in reqwest's stack puts a timeout
+# on it. reqwest's connect_timeout only covers the TCP connect that happens
+# *after* resolution (see hyper-util's HttpConnector::call_async: resolve()
+# runs unwrapped, then ConnectingTcp::new(addrs, config.connect_timeout) is
+# built from the resolved addrs). A hung or slow resolver (flaky
+# systemd-resolved stub, broken nsswitch, dead nameserver) can stall forever
+# before vez's own timeout/retry logic starts counting. hickory-dns is a
+# pure-Rust async resolver with its own per-query timeout/retry, which closes
+# that gap.
+reqwest = { version = "0.13", default-features = false, features = ["rustls", "stream", "hickory-dns", "json"] }
+quick-xml = { version = "0.36", features = ["serialize"] }
+serde_yaml = "0.9"
+bzip2 = "0.6"
+flate2 = "1"
+xz2 = "0.1"
+zstd = "0.13"
+clap = { version = "4", features = ["derive"] }
+clap_complete = "4"
+libc = "0.2"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+indicatif = "0.17"
+sha2 = "0.10"
+sha1 = "0.10"
+md-5 = "0.10"
+hex = "0.4"
+base64 = "0.22"
+
+[profile.release]
+lto = true
+strip = true

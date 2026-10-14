@@ -1,0 +1,85 @@
+name: vez CI
+
+# ── WHY THIS WORKFLOW EXISTS ────────────────────────────────────────────────
+#
+# The Svara image used to compile vez in its builder stage and gate that build on
+# three things: `cargo fmt --all --check`, `cargo test --locked`, and a pkg-config
+# check that the libsolv/librepo/glib-2.0 headers are present. The last one was, in
+# that step's own words, "the only place that proves the hand-written bindings match
+# the headers".
+#
+# Vez now arrives as an RPM from the COPR (dodo986/svara-tools), and COPR's build runs
+# `cargo build --release --locked` ONLY. It does not run the tests and it does not run
+# the header check. So without this workflow those gates would run NOWHERE, and a
+# change that breaks a hand-written binding — vez-librepo's sys.rs is written by hand
+# against /usr/include/librepo/*.h, and vez-solv's bindings are committed, not
+# regenerated — would build green in COPR and fail on a user's machine.
+#
+# It runs in a Fedora container because vez links Fedora's libsolv, librepo and
+# glib-2.0; the ubuntu runner has none of them, and the point is to check against the
+# SAME headers the RPM is built against.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    container: fedora:44
+    steps:
+      - name: Install the build dependencies
+        # The set mirrors vez.spec's BuildRequires. rustfmt is a SEPARATE package on
+        # Fedora — `cargo fmt` is not part of cargo there — which is why it is named.
+        run: |
+          dnf -y install --setopt=install_weak_deps=False \
+            cargo rust rustfmt pkgconf-pkg-config \
+            libsolv-devel librepo-devel glib2-devel openssl-devel rpm-devel \
+            systemd-rpm-macros git tar gzip xz zstd
+
+      - uses: actions/checkout@v4
+
+      - name: The hand-written FFI bindings still match the headers
+        # This is the check that used to live in build_files/30-components.sh. It does
+        # not compile anything: it asserts that every library the bindings were written
+        # against is visible to pkg-config, which is the precondition for the build.rs
+        # `pkg_config::probe` calls in vez-solv and vez-librepo to succeed. If a header
+        # package is renamed or dropped, this fails by name instead of surfacing as an
+        # opaque bindgen or linker error.
+        run: |
+          set -eux
+          for pc in libsolv libsolvext librepo glib-2.0 openssl rpm; do
+            pkg-config --exists "$pc" || { echo "pkg-config cannot see '$pc'"; exit 1; }
+          done
+
+      - name: cargo fmt --all --check
+        run: cargo fmt --all --check
+
+      - name: cargo test --locked
+        # THE FLAKY TEST IS RUN, NOT SKIPPED — but it is run ALONE, with one retry.
+        # `falls_back_to_the_next_mirror_in_the_same_repos_mirrorlist_on_404` is a
+        # load-sensitive upstream smoke test: it passed eleven consecutive runs outside
+        # a build and failed once inside one, identical code, one different outcome. The
+        # image build's gate handled that by skipping it from the main suite and running
+        # it on its own with two attempts, and this reproduces that arrangement rather
+        # than dropping the test. A single failure is a bad minute on a shared runner;
+        # two in a row fails the job. See docs/plan/package-manager.md.
+        run: |
+          set -eux
+          cargo test --locked -- --skip falls_back_to_the_next_mirror_in_the_same_repos_mirrorlist_on_404
+          attempt=1
+          until cargo test --locked --test mirror_fallback \
+                  falls_back_to_the_next_mirror_in_the_same_repos_mirrorlist_on_404; do
+            if [ "$attempt" -ge 2 ]; then
+              echo "the flaky mirror-fallback test failed twice — treating it as real"
+              exit 1
+            fi
+            attempt=$((attempt + 1))
+          done
+
+      - name: cargo build --release --locked
+        # What COPR actually runs. Kept here so a release-mode-only failure (LTO, the
+        # CFLAGS handling in vez.spec's %build) is caught in CI rather than in a build.
+        run: cargo build --release --locked

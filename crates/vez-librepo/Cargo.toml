@@ -1,0 +1,23 @@
+[package]
+name = "vez-librepo"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+anyhow = { workspace = true }
+libc = "0.2"
+
+[build-dependencies]
+pkg-config = "0.3"
+
+# Unlike vez-solv (see crates/vez-solv/Cargo.toml) there's no `regen-bindings`
+# feature here. librepo's API is small, but `lr_handle_setopt(handle, &err,
+# LRO_OPTION, ...)` is a real C varargs function and errors come back through
+# GLib's `GError**` out-param. bindgen can't produce a usable Rust signature
+# for either (its varargs support is limited and feature-gated), so the FFI
+# layer in `src/sys.rs` is written by hand against `/usr/include/librepo/*.h`
+# and `glib.h`. What we use (LrHandle, LrDownloadTarget, LrHandleOption,
+# GError) is librepo's stable public ABI and hasn't changed across the
+# versions dnf5 supports.

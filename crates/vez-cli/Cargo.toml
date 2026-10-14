@@ -1,0 +1,28 @@
+[package]
+name = "vez-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "vez"
+path = "src/main.rs"
+
+[dependencies]
+vez-core.workspace = true
+vez-overlay.workspace = true
+vez-repo.workspace = true
+vez-resolver.workspace = true
+vez-rpmdb.workspace = true
+vez-transaction.workspace = true
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+clap.workspace = true
+clap_complete.workspace = true
+tokio.workspace = true
+reqwest.workspace = true
+libc.workspace = true
+base64.workspace = true

@@ -1,0 +1,10 @@
+[package]
+name = "vez-rpmdb"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+vez-core.workspace = true
+anyhow.workspace = true
+tracing.workspace = true

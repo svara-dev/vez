@@ -1,0 +1,11 @@
+[Unit]
+Description=vez makecache timer
+
+[Timer]
+OnBootSec=10min
+OnUnitInactiveSec=3h
+RandomizedDelaySec=60m
+Unit=vez-makecache.service
+
+[Install]
+WantedBy=timers.target

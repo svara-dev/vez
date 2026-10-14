@@ -1,0 +1,18 @@
+[Unit]
+Description=vez makecache
+Documentation=man:vez(8)
+ConditionACPower=true
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+Nice=19
+# Background refresh must never compete with foreground work: idle CPU
+# weight and idle I/O class only get what nothing else wants.
+CPUWeight=idle
+IOSchedulingClass=idle
+# Oneshot units have no start timeout by default; cap a refresh stuck in
+# mirror/retry loops on a half-working network.
+TimeoutStartSec=30min
+ExecStart=/usr/bin/vez makecache
